@@ -12,26 +12,65 @@
 
 // module.exports = newsData;
 
+// const axios = require('axios');
+
+// if (process.env.NODE_ENV !== 'production') {
+//   require('dotenv').config();
+// }
+
+// let nextPage = ''; // Variable to store nextPage string
+
+// // const fetchInitialNews = async () => {
+// //   let url = `https://newsdata.io/api/1/news?apikey=${process.env.NewsApiKey}&language=en&q=cryptocurrency`;
+// //   const response = await axios.get(url);
+// //   nextPage = response.data.nextPage; // Save nextPage
+// //   return response.data;
+// // };
+
+// const fetchInitialNews = async () => {
+//   try {
+//     let url = `https://newsdata.io/api/1/news?apikey=${process.env.NewsApiKey}&language=en&q=cryptocurrency`;
+//     const response = await axios.get(url);
+//     nextPage = response.data.nextPage; // Save nextPage
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error fetching initial news:', error);
+//   }
+// };
+
+// const fetchNextNews = async () => {
+//   let url = `https://newsdata.io/api/1/news?apikey=${process.env.NewsApiKey}&language=en&q=cryptocurrency&page=${nextPage}`;
+//   const response = await axios.get(url);
+//   nextPage = response.data.nextPage; // Update nextPage
+//   return response.data;
+// };
+
+// module.exports = { fetchInitialNews, fetchNextNews, nextPage };
+
 const axios = require('axios');
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
-let nextPage = ''; // Variable to store nextPage string
+let nextPage = null; // Initialize nextPage to null
 
-const fetchInitialNews = async () => {
+const getNewsData = async (newsPage) => {
   let url = `https://newsdata.io/api/1/news?apikey=${process.env.NewsApiKey}&language=en&q=cryptocurrency`;
-  const response = await axios.get(url);
-  nextPage = response.data.nextPage; // Save nextPage
-  return response.data;
+
+  // Include the page parameter only if newsPage exists
+  if (newsPage) {
+    url += `&page=${newsPage}`;
+  }
+
+  try {
+    const response = await axios.get(url);
+    nextPage = response.data.nextPage; // Update nextPage for the next call
+    return response.data;
+  } catch (error) {
+    console.error('News API Error:', error);
+    return null;
+  }
 };
 
-const fetchNextNews = async () => {
-  let url = `https://newsdata.io/api/1/news?apikey=${process.env.NewsApiKey}&language=en&q=cryptocurrency&page=${nextPage}`;
-  const response = await axios.get(url);
-  nextPage = response.data.nextPage; // Update nextPage
-  return response.data;
-};
-
-module.exports = { fetchInitialNews, fetchNextNews, nextPage };
+module.exports = { getNewsData, nextPage };

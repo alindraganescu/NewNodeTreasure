@@ -2,20 +2,41 @@ var express = require('express');
 var router = express.Router();
 const app = require('../app');
 const getCoinGeckoData = require('../Fetches/coingecko');
-const getNewsData = require('../Fetches/news');
+const { getNewsData } = require('../Fetches/news');
 // const newsData = require('../data.json'); //news comming from my file, not from API
 const db = require('../database/client');
 const axios = require('axios');
 const sendEmail = require('../services/mailer');
 
 /* Send home page for frontend. */
-router.get('/home', async function (req, res, next) {
-  const { newsPage } = req.query;
-  const coinGeckoData = await getCoinGeckoData();
-  const newsData = await getNewsData(newsPage); //the news comming from API
+// router.get('/home', async function (req, res, next) {
+//   const { newsPage } = req.query;
+//   const coinGeckoData = await getCoinGeckoData();
+//   const newsData = await getNewsData(newsPage); //the news comming from API
 
-  // res.json({ coinGecko: data, news: data2 });
-  res.json({ coinGeckoData, newsData });
+//   // res.json({ coinGecko: data, news: data2 });
+//   res.json({ coinGeckoData, newsData });
+// });
+
+router.get('/home', async function (req, res, next) {
+  console.log('Home route accessed'); // Log when the route is accessed
+  try {
+    const { newsPage } = req.query;
+    console.log('News Page:', newsPage); // Log the newsPage query parameter
+
+    const coinGeckoData = await getCoinGeckoData();
+    console.log('CoinGeckoData:', coinGeckoData); // Log the data received from CoinGecko
+
+    const newsData = await getNewsData(newsPage); // Get the data received from News API
+    console.log('NewsData:', newsData);
+
+    res.json({ coinGeckoData, newsData });
+  } catch (error) {
+    console.error('Error:', error); // Log errors
+    console.error('Error Message:', error.message); // Log error message
+    console.error('Error Stack:', error.stack); // Log error stack trace
+    res.status(500).json({ error: 'An error occurred' });
+  }
 });
 
 //**************************************GET ROUTES SQL DATABASE ************************/
@@ -207,8 +228,6 @@ router.post('/coins', async (req, res) => {
   }
 });
 
-
-
 //**************************************DELETE ROUTES SQL DATABASE******************************************
 
 //Delete a user
@@ -229,7 +248,6 @@ router.delete('/user/:id', (req, res) => {
     })
     .catch((e) => res.status(500).send(e.message));
 });
-
 
 //Delete a link of the user
 router.delete('/links/:link_id/:user_id', (req, res) => {
@@ -368,7 +386,6 @@ router.put('/user/:id', (req, res) => {
     .catch((e) => res.status(500).send(e.message));
 });
 
-
 //************************************Retrieve all the database of the user:**********************
 
 // Get all the data
@@ -422,7 +439,6 @@ router.get('/alldata/:id', async (req, res) => {
   //     res.json(data.rows);
   //   })
   //   .catch((err) => console.error(err));
-
 });
 
 //We receive the alert from the Alerting service:
@@ -441,7 +457,7 @@ router.post('/cryptocurrencyalerting', async (req, res) => {
     //   exchange: "Binance"
     // }
 
-    const alert = req.body
+    const alert = req.body;
 
     const findUsersByAlert = {
       text: `
@@ -450,32 +466,29 @@ router.post('/cryptocurrencyalerting', async (req, res) => {
       JOIN price_alert pa
       on pa.user_id = u.id
       WHERE coin_symbol = $1
-      AND $2 ${alert.direction === "above" ? ">=" : "<="} pa.trigger_value
+      AND $2 ${alert.direction === 'above' ? '>=' : '<='} pa.trigger_value
     `,
-      values: [alert.currency, alert.price]
-    }
+      values: [alert.currency, alert.price],
+    };
 
-    const { rows: userRows} = await db.query(findUsersByAlert)
+    const { rows: userRows } = await db.query(findUsersByAlert);
 
     if (userRows.length) {
-
       const userEmailSendingPromise = userRows.map(async (user) => {
-       return await sendEmail(
+        return await sendEmail(
           user.email,
           `Your alert for ${alert.currency} has been triggered ${user.username}!`,
           alert.message,
           `<h1>${alert.message}</h1>`
         );
-      })
+      });
 
-      const results = await Promise.all(userEmailSendingPromise)
+      const results = await Promise.all(userEmailSendingPromise);
 
       res.json(results);
     }
 
-    res.json(userRows)
-
-    
+    res.json(userRows);
 
     // price_alert
     // id	user_id	coin_id	  trigger_value	coin_symbol	crypto_currency_alerting_id
@@ -484,8 +497,6 @@ router.post('/cryptocurrencyalerting', async (req, res) => {
     // users
     // id	username	password	email
     // 1	alinut	bitcoin	alin@gmail.com
-
-
 
     // res.sendStatus(200);
   } catch (e) {
@@ -519,14 +530,14 @@ router.post('/alerts', async (req, res) => {
   try {
     const url = 'https://api.cryptocurrencyalerting.com/v1/alert-conditions/';
 
-     const alertData = {
-      type: "price",
+    const alertData = {
+      type: 'price',
       currency, // Eg: ETH => one of https://cryptocurrencyalerting.com/coins.html
-      target_currency: "USD",
+      target_currency: 'USD',
       price, // Should be a string (eg: "500")
       direction, // Eg: 'above' or 'below'
-      channel: { name: "webhook" },
-      exchange: "Binance",
+      channel: { name: 'webhook' },
+      exchange: 'Binance',
     };
 
     const headers = {
